@@ -1,11 +1,13 @@
+// tracker.js
+
 export class Track {
   constructor(id, bbox, embedding, label = '', score = 0.0) {
     this.id = id;
-    this.bbox = bbox;
-    this.embedding = embedding;
+    this.bbox = bbox;            // [y1, x1, y2, x2]
+    this.embedding = DeepSort.smoothEmbedding(this.embedding, embedding, 0.8);
+    this.age = 0;
     this.label = label;
     this.score = score;
-    this.age = 0;
   }
 
   predict() {
@@ -14,11 +16,12 @@ export class Track {
 
   update(bbox, embedding, label, score) {
     this.bbox = bbox;
-    this.embedding = DeepSort.smoothEmbedding(this.embedding, embedding, 0.8);
+    this.embedding = embedding;
     this.label = label;
     this.score = score;
     this.age = 0;
   }
+
 }
 
 export class DeepSort {
@@ -40,6 +43,15 @@ export class DeepSort {
     return interArea / (area1 + area2 - interArea);
   }
 
+  static smoothEmbedding(prev, next, alpha = 0.8) {
+    if (!prev) return next.slice(); // first assignment — no smoothing
+    const result = new Array(prev.length);
+    for (let i = 0; i < prev.length; i++) {
+      result[i] = alpha * prev[i] + (1 - alpha) * next[i];
+    }
+   return result;
+  }
+
   static cosineDist(e1, e2) {
     let dot = 0, n1 = 0, n2 = 0;
     for (let i = 0; i < e1.length; i++) {
@@ -50,22 +62,15 @@ export class DeepSort {
     return 1 - dot / Math.sqrt(n1 * n2);
   }
 
-  static smoothEmbedding(prev, next, alpha = 0.8) {
-    if (!prev) return next.slice();
-    const result = new Array(prev.length);
-    for (let i = 0; i < prev.length; i++) {
-      result[i] = alpha * prev[i] + (1 - alpha) * next[i];
-    }
-    return result;
-  }
-
   async update(bboxes, embeddings, labels = [], scores = []) {
     const M = bboxes.length;
     const N = this.tracks.length;
 
     if (N === 0) {
       for (let j = 0; j < M; j++) {
-        this.tracks.push(new Track(this.nextId++, bboxes[j], embeddings[j], labels[j], scores[j]));
+        this.tracks.push(
+          new Track(this.nextId++, bboxes[j], embeddings[j], labels[j], scores[j])
+        );
       }
       return this.tracks;
     }
@@ -75,12 +80,7 @@ export class DeepSort {
     const cost = Array(N).fill().map(() => Array(M).fill(0));
     for (let i = 0; i < N; i++) {
       for (let j = 0; j < M; j++) {
-        const iou = DeepSort.iou(this.tracks[i].bbox, bboxes[j]);
-        if (iou < 0.01) {
-          cost[i][j] = Infinity;
-          continue;
-        }
-        const motion = 1 - iou;
+        const motion     = 1 - DeepSort.iou(this.tracks[i].bbox, bboxes[j]);
         const appearance = DeepSort.cosineDist(this.tracks[i].embedding, embeddings[j]);
         cost[i][j] = motion + appearance;
       }
@@ -105,10 +105,13 @@ export class DeepSort {
 
     for (let j = 0; j < M; j++) {
       if (!assignedDetections.has(j)) {
-        this.tracks.push(new Track(this.nextId++, bboxes[j], embeddings[j], labels[j], scores[j]));
+        this.tracks.push(
+          new Track(this.nextId++, bboxes[j], embeddings[j], labels[j], scores[j])
+        );
       }
     }
 
     return this.tracks;
   }
 }
+
