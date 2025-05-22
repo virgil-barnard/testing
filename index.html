@@ -1,29 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>WebGPU Object Tracker</title>
-  <style>
-    body { margin: 0; overflow: hidden; background: black; }
-    video, canvas { position: absolute; top: 0; left: 0; }
-    video { display: none; }
-  </style>
-
-  <!-- ✅ UMD scripts that define `tf`, `cocoSsd`, `mobilenet`, etc. -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgpu@4.22.0/dist/tf-backend-webgpu.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0/dist/mobilenet.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/munkres-js@1.2.2/munkres.js"></script>
-
-  <!-- 🔁 Start app once WebGPU backend is ready -->
-  <script type="module">
-    import { startApp } from './main.js';
-    tf.setBackend('webgpu').then(() => tf.ready()).then(startApp);
-  </script>
-</head>
 <body>
-  <video id="video" autoplay muted playsinline></video>
+  <video autoplay playsinline id="video" hidden></video>
   <canvas id="canvas"></canvas>
+
+  <!-- ─ Live metric overlay ─ -->
+  <div id="info"
+      style="position:fixed;top:0;left:0;
+              padding:4px 8px;
+              background:rgba(0,0,0,0.6);
+              color:#00ff88;
+              font-family:monospace;
+              font-size:14px;">
+    grad L1: <span id="grad-l1">0</span><br>
+    Video FPS: <span id="video-fps">0</span><br>
+    Inference FPS: <span id="inference-fps">0</span>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
 </body>
-</html>
