@@ -1,5 +1,17 @@
 import { DeepSort } from './tracker.js';
 
+const origWarn = console.warn;
+console.warn = (...args) => {
+  // filter out the one NMS warning
+  if (
+    typeof args[0] === 'string' &&
+    args[0].includes('tf.nonMaxSuppression() in webgpu locks the UI thread')
+  ) {
+    return;
+  }
+  origWarn(...args);
+};
+
 const tf        = window.tf;
 const cocoSsd   = window.cocoSsd;
 const mobilenet = window.mobilenet;
