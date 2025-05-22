@@ -13,7 +13,7 @@ let video, canvas, ctx;
 let smallCanvas, smallCtx;
 let model, reidModel, tracker;
 
-async function init() {
+export async function startApp() {
   await tf.setBackend('webgpu');
   await tf.ready();
 
@@ -117,4 +117,3 @@ async function detectLoop() {
   requestAnimationFrame(detectLoop);
 }
 
-init();
