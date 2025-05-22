@@ -1,4 +1,4 @@
-(function(){const c=document.createElement("link").relList;if(c&&c.supports&&c.supports("modulepreload"))return;for(const r of document.querySelectorAll('link[rel="modulepreload"]'))d(r);new MutationObserver(r=>{for(const n of r)if(n.type==="childList")for(const a of n.addedNodes)a.tagName==="LINK"&&a.rel==="modulepreload"&&d(a)}).observe(document,{childList:!0,subtree:!0});function e(r){const n={};return r.integrity&&(n.integrity=r.integrity),r.referrerPolicy&&(n.referrerPolicy=r.referrerPolicy),r.crossOrigin==="use-credentials"?n.credentials="include":r.crossOrigin==="anonymous"?n.credentials="omit":n.credentials="same-origin",n}function d(r){if(r.ep)return;r.ep=!0;const n=e(r);fetch(r.href,n)}})();const D=`@group(0) @binding(0) var samplerLinear : sampler;\r
+(function(){const d=document.createElement("link").relList;if(d&&d.supports&&d.supports("modulepreload"))return;for(const r of document.querySelectorAll('link[rel="modulepreload"]'))s(r);new MutationObserver(r=>{for(const n of r)if(n.type==="childList")for(const a of n.addedNodes)a.tagName==="LINK"&&a.rel==="modulepreload"&&s(a)}).observe(document,{childList:!0,subtree:!0});function e(r){const n={};return r.integrity&&(n.integrity=r.integrity),r.referrerPolicy&&(n.referrerPolicy=r.referrerPolicy),r.crossOrigin==="use-credentials"?n.credentials="include":r.crossOrigin==="anonymous"?n.credentials="omit":n.credentials="same-origin",n}function s(r){if(r.ep)return;r.ep=!0;const n=e(r);fetch(r.href,n)}})();const w=`@group(0) @binding(0) var samplerLinear : sampler;\r
 @group(0) @binding(1) var inputTexture : texture_2d<f32>;\r
 \r
 struct VertexOutput {\r
@@ -48,7 +48,7 @@ fn fs_main(@location(0) fragUV: vec2<f32>) -> @location(0) vec4<f32> {\r
 \r
   return vec4(color.rgb, 1.0);\r
 }\r
-`,E=`/* cnn_segmentation.wgsl  – 3×3 conv on luminance, sigmoid, 4-nbr smooth\r
+`,S=`/* cnn_segmentation.wgsl  – 3×3 conv on luminance, sigmoid, 4-nbr smooth\r
    Centre pixel is multiplied by its weight again, so different crops\r
    really produce different masks → non-zero gradients.                */\r
 \r
@@ -98,7 +98,7 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {\r
 \r
   textureStore(output, uv, vec4<f32>(p, p, p, 1.0));\r
 }\r
-`,V=`struct AugParams {        // offset.x, offset.y, scale.x, scale.y\r
+`,h=`struct AugParams {        // offset.x, offset.y, scale.x, scale.y\r
   offScale : vec4<f32>,   // colour jitter packed in .zw‐component of next vec4\r
   colour   : vec4<f32>,   // r,g,b,unused   (values around 1.0 = no change)\r
 };\r
@@ -117,7 +117,7 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>)\r
   let pix  = textureSampleLevel(srcTex, samp, uv, 0.0).rgb * params.colour.xyz;\r
   textureStore(dstTex, vec2<i32>(gid.xy), vec4<f32>(pix, 1.0));\r
 }\r
-`,B=`// Very small affine warp: inverse crop from view-B → view-A space.\r
+`,T=`// Very small affine warp: inverse crop from view-B → view-A space.\r
 struct Warp { offScale : vec4<f32>, };\r
 @group(0) @binding(0) var src : texture_2d<f32>;\r
 @group(0) @binding(1) var dst : texture_storage_2d<rgba8unorm, write>;\r
@@ -134,7 +134,7 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>)\r
   let m   = textureSampleLevel(src, samp, uv, 0.0).r;\r
   textureStore(dst, vec2<i32>(gid.xy), vec4<f32>(m, m, m, 1.0));\r
 }\r
-`,I=`/* loss.wgsl  – AugCo gradient, integer-atomics version  */\r
+`,L=`/* loss.wgsl  – AugCo gradient, integer-atomics version  */\r
 const SCALE : f32 = 1e6;              // converts float-grad ➞ fixed-point\r
 \r
 struct Grad { vals : array<atomic<i32>, 9>, };\r
@@ -170,7 +170,7 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>)\r
     }\r
   }\r
 }\r
-`,F=`@group(0) @binding(0) var prevTex : texture_2d<f32>;\r
+`,P=`@group(0) @binding(0) var prevTex : texture_2d<f32>;\r
 @group(0) @binding(1) var currTex : texture_2d<f32>;\r
 @group(0) @binding(2) var flowTex : texture_storage_2d<rgba16float, write>;   // xy-flow, z unused\r
 \r
@@ -196,7 +196,7 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>)\r
 \r
   textureStore(flowTex, uv, vec4<f32>(u, v, 0.0, 0.0));\r
 }\r
-`,R=`@group(0) @binding(0) var srcFlow : texture_2d<f32>;\r
+`,M=`@group(0) @binding(0) var srcFlow : texture_2d<f32>;\r
 @group(0) @binding(1) var samp    : sampler;\r
 @group(0) @binding(2) var dstFlow : texture_storage_2d<rgba16float, write>;\r
 \r
@@ -210,7 +210,7 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {\r
 \r
   textureStore(dstFlow, vec2<i32>(gid.xy), vec4<f32>(flow, 0.0, 0.0));\r
 }\r
-`,K=`/* Show webcam + green-tinted alpha mask (probability).  */\r
+`,k=`/* Show webcam + green-tinted alpha mask (probability).  */\r
 \r
 @group(0) @binding(0) var samp      : sampler;\r
 @group(0) @binding(1) var videoTex  : texture_2d<f32>;\r
@@ -234,7 +234,7 @@ fn fs_main(@location(0) uv : vec2<f32>) -> @location(0) vec4<f32> {\r
   let m     = textureSample(maskTex , samp, uv).r;   // 0‒1\r
   let tint  = mix(rgb, vec3(0.0, 1.0, 0.0), m * 0.7); // 70 % green where mask=1\r
   return vec4<f32>(tint, 1.0);\r
-}`,q=`// Warp previous mask by dense optical flow\r
+}`,z=`// Warp previous mask by dense optical flow\r
 @group(0) @binding(0) var prevMask : texture_2d<f32>;\r
 @group(0) @binding(1) var flowTex  : texture_2d<f32>;\r
 @group(0) @binding(2) var outWarp  : texture_storage_2d<rgba8unorm, write>;\r
@@ -253,7 +253,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {\r
   let val    = textureSampleLevel(prevMask, samp, prevUV, 0.0).r;\r
   textureStore(outWarp, vec2<i32>(gid.xy), vec4<f32>(val, val, val, 1.0));\r
 }\r
-`,N=`// Compute L2 error between current & warped‐previous masks\r
+`,C=`// Compute L2 error between current & warped‐previous masks\r
 const SCALE_F : f32 = 1e6;  // if you want fixed‐point\r
 \r
 struct Grad { vals: array<atomic<i32>, 1>, }; // one global accumulator\r
@@ -274,4 +274,4 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {\r
   let gi  = i32(round(err * SCALE_F));\r
   atomicAdd(&grad.vals[0], gi);\r
 }\r
-`,m=document.getElementById("canvas"),v=document.getElementById("video");document.getElementById("grad-l1");document.getElementById("video-fps");document.getElementById("inference-fps");(async function(){const c=await navigator.gpu.requestAdapter();if(!c){alert("WebGPU not supported");return}const e=await c.requestDevice(),d=m.getContext("webgpu"),r=navigator.gpu.getPreferredCanvasFormat();d.configure({device:e,format:r});const n=await navigator.mediaDevices.getUserMedia({video:!0});v.srcObject=n,await new Promise(t=>v.onloadedmetadata=t),m.width=v.videoWidth,m.height=v.videoHeight;const a=[m.width,m.height],i=GPUTextureUsage.TEXTURE_BINDING,s=GPUTextureUsage.STORAGE_BINDING,p=GPUTextureUsage.RENDER_ATTACHMENT,l=GPUTextureUsage.COPY_DST,S=GPUTextureUsage.COPY_SRC,o=(t,u="rgba8unorm",U=a)=>e.createTexture({size:U,format:u,usage:t}),h=e.createSampler({minFilter:"linear",magFilter:"linear"}),g=Array.from({length:3},(t,u)=>[Math.max(1,a[0]>>u),Math.max(1,a[1]>>u)]);g.map(t=>o(i|p|l,"bgra8unorm",t)),g.map(t=>o(i|p|l,"bgra8unorm",t)),g.map(t=>o(i|s|l,"rgba16float",t));const f=o(i|l|p);o(i|s),o(i|s),o(i|s|p),o(i|s),o(i|s);const T=o(i|s|S,"rgba8unorm",a);let L=new Float32Array(9).fill(.1);const P=e.createTexture({size:[3,3],format:"r32float",usage:i|l});e.queue.writeTexture({texture:P},L,{bytesPerRow:3*4},[3,3]);const x=e.createShaderModule({code:D}),k=e.createShaderModule({code:E}),M=e.createShaderModule({code:V}),z=e.createShaderModule({code:B}),C=e.createShaderModule({code:I}),G=e.createShaderModule({code:F}),A=e.createShaderModule({code:R}),y=e.createShaderModule({code:K}),W=e.createShaderModule({code:q}),O=e.createShaderModule({code:N});e.createRenderPipeline({layout:"auto",vertex:{module:x,entryPoint:"vs_main"},fragment:{module:x,entryPoint:"fs_main",targets:[{format:r}]},primitive:{topology:"triangle-strip"}}),e.createComputePipeline({layout:"auto",compute:{module:A,entryPoint:"main"}}),e.createComputePipeline({layout:"auto",compute:{module:G,entryPoint:"main"}}),e.createComputePipeline({layout:"auto",compute:{module:k,entryPoint:"main"}}),e.createComputePipeline({layout:"auto",compute:{module:M,entryPoint:"main"}}),e.createComputePipeline({layout:"auto",compute:{module:z,entryPoint:"main"}}),e.createComputePipeline({layout:"auto",compute:{module:C,entryPoint:"main"}}),e.createComputePipeline({layout:"auto",compute:{module:W,entryPoint:"main"}}),e.createComputePipeline({layout:"auto",compute:{module:O,entryPoint:"main"}});const b=e.createRenderPipeline({layout:"auto",vertex:{module:y,entryPoint:"vs_main"},fragment:{module:y,entryPoint:"fs_main",targets:[{format:r}]},primitive:{topology:"triangle-strip"}});function _(){e.queue.copyExternalImageToTexture({source:v},{texture:f},a);const t=e.createCommandEncoder(),u=t.beginRenderPass({colorAttachments:[{view:d.getCurrentTexture().createView(),loadOp:"clear",storeOp:"store",clearValue:[0,0,0,1]}]});u.setPipeline(b),u.setBindGroup(0,e.createBindGroup({layout:b.getBindGroupLayout(0),entries:[{binding:0,resource:h},{binding:1,resource:f.createView()},{binding:2,resource:T.createView()}]})),u.draw(4),u.end(),e.queue.submit([t.finish()]),requestAnimationFrame(_)}requestAnimationFrame(_)})().catch(console.error);
+`,v=document.getElementById("canvas"),m=document.getElementById("video");document.getElementById("grad-l1");document.getElementById("video-fps");document.getElementById("inference-fps");device.createShaderModule({code:w});device.createShaderModule({code:S});device.createShaderModule({code:h});device.createShaderModule({code:T});device.createShaderModule({code:L});device.createShaderModule({code:P});device.createShaderModule({code:M});device.createShaderModule({code:k});device.createShaderModule({code:z});device.createShaderModule({code:C});(async function(){const d=await navigator.gpu.requestAdapter();if(!d){alert("WebGPU not supported");return}const e=await d.requestDevice(),s=v.getContext("webgpu"),r=navigator.gpu.getPreferredCanvasFormat();s.configure({device:e,format:r});const n=await navigator.mediaDevices.getUserMedia({video:!0});m.srcObject=n,await new Promise(t=>m.onloadedmetadata=t),v.width=m.videoWidth,v.height=m.videoHeight;const a=[v.width,v.height],i=GPUTextureUsage.TEXTURE_BINDING,c=GPUTextureUsage.STORAGE_BINDING,p=GPUTextureUsage.RENDER_ATTACHMENT,l=GPUTextureUsage.COPY_DST,A=GPUTextureUsage.COPY_SRC,o=(t,u="rgba8unorm",N=a)=>e.createTexture({size:N,format:u,usage:t}),W=e.createSampler({minFilter:"linear",magFilter:"linear"}),g=Array.from({length:3},(t,u)=>[Math.max(1,a[0]>>u),Math.max(1,a[1]>>u)]);g.map(t=>o(i|p|l,"bgra8unorm",t)),g.map(t=>o(i|p|l,"bgra8unorm",t)),g.map(t=>o(i|c|l,"rgba16float",t));const f=o(i|l|p);o(i|c),o(i|c),o(i|c|p),o(i|c),o(i|c);const O=o(i|c|A,"rgba8unorm",a);let U=new Float32Array(9).fill(.1);const D=e.createTexture({size:[3,3],format:"r32float",usage:i|l});e.queue.writeTexture({texture:D},U,{bytesPerRow:3*4},[3,3]);const x=e.createShaderModule({code:w}),E=e.createShaderModule({code:S}),V=e.createShaderModule({code:h}),B=e.createShaderModule({code:T}),I=e.createShaderModule({code:L}),F=e.createShaderModule({code:P}),R=e.createShaderModule({code:M}),y=e.createShaderModule({code:k}),K=e.createShaderModule({code:z}),q=e.createShaderModule({code:C});e.createRenderPipeline({layout:"auto",vertex:{module:x,entryPoint:"vs_main"},fragment:{module:x,entryPoint:"fs_main",targets:[{format:r}]},primitive:{topology:"triangle-strip"}}),e.createComputePipeline({layout:"auto",compute:{module:R,entryPoint:"main"}}),e.createComputePipeline({layout:"auto",compute:{module:F,entryPoint:"main"}}),e.createComputePipeline({layout:"auto",compute:{module:E,entryPoint:"main"}}),e.createComputePipeline({layout:"auto",compute:{module:V,entryPoint:"main"}}),e.createComputePipeline({layout:"auto",compute:{module:B,entryPoint:"main"}}),e.createComputePipeline({layout:"auto",compute:{module:I,entryPoint:"main"}}),e.createComputePipeline({layout:"auto",compute:{module:K,entryPoint:"main"}}),e.createComputePipeline({layout:"auto",compute:{module:q,entryPoint:"main"}});const b=e.createRenderPipeline({layout:"auto",vertex:{module:y,entryPoint:"vs_main"},fragment:{module:y,entryPoint:"fs_main",targets:[{format:r}]},primitive:{topology:"triangle-strip"}});function _(){e.queue.copyExternalImageToTexture({source:m},{texture:f},a);const t=e.createCommandEncoder(),u=t.beginRenderPass({colorAttachments:[{view:s.getCurrentTexture().createView(),loadOp:"clear",storeOp:"store",clearValue:[0,0,0,1]}]});u.setPipeline(b),u.setBindGroup(0,e.createBindGroup({layout:b.getBindGroupLayout(0),entries:[{binding:0,resource:W},{binding:1,resource:f.createView()},{binding:2,resource:O.createView()}]})),u.draw(4),u.end(),e.queue.submit([t.finish()]),requestAnimationFrame(_)}requestAnimationFrame(_)})().catch(console.error);
