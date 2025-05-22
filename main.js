@@ -1,8 +1,8 @@
-import * as tf from 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.esm.js';
-import 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgpu@4.22.0/dist/tf-backend-webgpu.esm.js';
-import * as cocoSsd from 'https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2/dist/coco-ssd.esm.js';
-import * as mobilenet from 'https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2/dist/mobilenet.esm.js';
 import { DeepSort } from './tracker.js';
+
+const tf        = window.tf;
+const cocoSsd   = window.cocoSsd;
+const mobilenet = window.mobilenet;
 
 const DETECT_EVERY = 3;
 const SW = 320, SH = 240;
