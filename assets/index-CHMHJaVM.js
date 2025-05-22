@@ -278,7 +278,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {\r
    dst = rgb · ((Y − μ) / σ)    →   scaled back into [0,1]\r
    μ and 1/σ come from the small CPU thumbnail each frame.          */\r
 \r
-struct Stats { mean : f32; invStd : f32; };\r
+struct Stats { mean : f32, invStd : f32, };\r
 \r
 @group(0) @binding(0) var<uniform> stats : Stats;\r
 @group(0) @binding(1) var samp  : sampler;\r
