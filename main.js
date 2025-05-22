@@ -122,10 +122,21 @@ async function detectLoop() {
     }
   });
 
+  // Draw FPS + memory stats
   ctx.fillStyle = 'yellow';
-  ctx.font = '16px sans-serif';
+  ctx.font      = '18px sans-serif';
   ctx.fillText(`FPS: ${fps.toFixed(1)}`, 10, 20);
 
+  const mem   = tf.memory();
+  const gpuMB = (mem.numBytes / 1024 / 1024).toFixed(2);
+  ctx.fillStyle = 'white';
+  ctx.font      = '14px monospace';
+  ctx.fillText(`GPU Mem: ${gpuMB} MB`, 10, 40);
+  ctx.fillText(`Tensors: ${mem.numTensors}`, 10, 56);
+  if (performance.memory) {
+    const heapMB = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2);
+    ctx.fillText(`JS Heap: ${heapMB} MB`, 10, 72);
+  }
   requestAnimationFrame(detectLoop);
 }
 
