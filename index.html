@@ -2,32 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>WebGPU Object Tracker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WebGPU Tracker</title>
   <style>
-    body {
-      margin: 0;
-      background: black;
-      overflow: hidden;
-    }
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-    video {
-      display: none;
-    }
+    body { margin: 0; overflow: hidden; background: black; }
+    video, canvas { position: absolute; top: 0; left: 0; }
+    video { display: none; }
   </style>
+
+  <!-- Load dependencies -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgpu@4.22.0/dist/tf-backend-webgpu.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2/dist/coco-ssd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2/dist/mobilenet.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/munkres-js@1.2.2/munkres.js"></script>
+
+  <!-- Main entry -->
+  <script type="module" src="./main.js"></script>
 </head>
 <body>
   <video id="video" autoplay muted playsinline></video>
   <canvas id="canvas"></canvas>
-
-  <!-- Import UMD utilities -->
-  <script src="https://cdn.jsdelivr.net/npm/munkres-js@1.2.2/munkres.js"></script>
-
-  <!-- Load and start app -->
-  <script type="module" src="./main.js"></script>
 </body>
 </html>
