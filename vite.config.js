@@ -1,7 +1,7 @@
 // vite.config.js
 import { defineConfig } from 'vite';
 
-const repo = 'YOUR_REPO_NAME';        // <<<  change only this line
+const repo = 'testing';        // <<<  change only this line
 
 export default defineConfig(({ mode }) => ({
   /** ① the base URL GitHub Pages will host under */
@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => ({
   assetsInclude: ['**/*.wgsl'],
   /** ③ normal single-page build */
   build: {
+    target: 'esnext',
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: { input: 'index.html' }
