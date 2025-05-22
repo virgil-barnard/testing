@@ -1,0 +1,20 @@
+<script type="module" crossorigin src="/YOUR_REPO_NAME/assets/index-BtYtC7mh.js"></script>
+
+<body>
+  <video autoplay playsinline id="video" hidden></video>
+  <canvas id="canvas"></canvas>
+
+  <!-- ─ Live metric overlay ─ -->
+  <div id="info"
+      style="position:fixed;top:0;left:0;
+              padding:4px 8px;
+              background:rgba(0,0,0,0.6);
+              color:#00ff88;
+              font-family:monospace;
+              font-size:14px;">
+    grad L1: <span id="grad-l1">0</span><br>
+    Video FPS: <span id="video-fps">0</span><br>
+    Inference FPS: <span id="inference-fps">0</span>
+  </div>
+
+</body>
