@@ -22,6 +22,9 @@ import overlayWGSL  from './shaders/overlay.wgsl?raw';
 import tmpWarpWGSL  from './shaders/temp_consistency.wgsl?raw';
 import tmpLossWGSL  from './shaders/temp_loss.wgsl?raw';
 
+
+
+
 /* ─────────────────────── main IIFE ─────────────────────────── */
 (async function main() {
   /* ---------- GPU setup ---------- */
@@ -32,6 +35,18 @@ import tmpLossWGSL  from './shaders/temp_loss.wgsl?raw';
   const ctx = canvas.getContext('webgpu')!;
   const format = navigator.gpu.getPreferredCanvasFormat();
   ctx.configure({ device, format });
+
+  /* --- compile once, re-use everywhere --- */
+  const blurMod     = device.createShaderModule({ code: blurWGSL });
+  const cnnMod      = device.createShaderModule({ code: cnnWGSL });
+  const augMod      = device.createShaderModule({ code: augWGSL });
+  const warpMod     = device.createShaderModule({ code: warpWGSL });
+  const lossMod     = device.createShaderModule({ code: lossWGSL });
+  const flowMod     = device.createShaderModule({ code: flowWGSL });
+  const upscaleMod  = device.createShaderModule({ code: upscaleWGSL });
+  const overlayMod  = device.createShaderModule({ code: overlayWGSL });
+  const tempWarpMod = device.createShaderModule({ code: tmpWarpWGSL });
+  const tempLossMod = device.createShaderModule({ code: tmpLossWGSL });
 
   /* ---------- webcam ---------- */
   const stream = await navigator.mediaDevices.getUserMedia({ video: true });
