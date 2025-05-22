@@ -21,6 +21,7 @@ import upscaleWGSL  from './shaders/upscale_flow.wgsl?raw';
 import overlayWGSL  from './shaders/overlay.wgsl?raw';
 import tmpWarpWGSL  from './shaders/temp_consistency.wgsl?raw';
 import tmpLossWGSL  from './shaders/temp_loss.wgsl?raw';
+import normWGSL     from './shaders/normalise.wgsl?raw';       /* ★ NEW */
 
 /* ─────────────────────── main IIFE ─────────────────────────── */
 (async () => {
@@ -58,12 +59,25 @@ const levels  = 3;
 const pyrDims = Array.from({length:levels},(_,i)=>[
   Math.max(1, wh[0] >> i), Math.max(1, wh[1] >> i)
 ]);
-let prevPyr = pyrDims.map(d=>makeTex(TEX|REND|COPY,'bgra8unorm',d));
-let currPyr = pyrDims.map(d=>makeTex(TEX|REND|COPY,'bgra8unorm',d));
+let prevPyr = pyrDims.map((dim, i) =>
+  i === 0
+    // level-0: we write into it, so we need STORAGE_BINDING and rgba8unorm
+    ? makeTex(TEX | REND | COPY | STOR, 'rgba8unorm', dim)
+    // levels 1-n: unchanged
+    : makeTex(TEX | REND | COPY,        'bgra8unorm', dim)
+);
+let currPyr = pyrDims.map((dim, i) =>
+  i === 0
+    // level-0: we write into it, so we need STORAGE_BINDING and rgba8unorm
+    ? makeTex(TEX | REND | COPY | STOR, 'rgba8unorm', dim)
+    // levels 1-n: unchanged
+    : makeTex(TEX | REND | COPY,        'bgra8unorm', dim)
+);
 let flowPyr = pyrDims.map(d=>makeTex(TEX|STOR|COPY,'rgba16float',d));
 
 /* ---------- WORKING TEXTURES ---------- */
 const webcamTex   = makeTex(TEX|COPY|REND);
+const normTex     = makeTex(TEX|STOR);
 const augATex     = makeTex(TEX|STOR);
 const augBTex     = makeTex(TEX|STOR);
 const segATex     = makeTex(TEX|STOR|REND);
@@ -92,6 +106,7 @@ const upMod     = device.createShaderModule({code:upscaleWGSL});
 const overlayMod= device.createShaderModule({code:overlayWGSL});
 const tWarpMod  = device.createShaderModule({code:tmpWarpWGSL});
 const tLossMod  = device.createShaderModule({code:tmpLossWGSL});
+const normMod   = device.createShaderModule({ code:normWGSL});
 
 /* ---------- PIPELINES ---------- */
 const blurPipe    = device.createRenderPipeline({
@@ -122,6 +137,10 @@ const overlayPipe = device.createRenderPipeline({
   fragment:{module:overlayMod, entryPoint:'fs_main', targets:[{format}]},
   primitive:{topology:'triangle-strip'}
 });
+  const normPipe = device.createComputePipeline({                /* ★ NEW */
+    layout : 'auto',
+    compute: { module: normMod, entryPoint:'main' }
+  });
 
 /* ---------- BUFFERS ---------- */
 const gradBuf = device.createBuffer({
@@ -139,6 +158,11 @@ const whBuf = device.createBuffer({
   size:8, usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST, mappedAtCreation:true
 });
 new Float32Array(whBuf.getMappedRange()).set(wh); whBuf.unmap();
+/* ---------- uniform buffer for <mean, invStd> ----------------- ★ NEW */
+const normStatsBuf = device.createBuffer({
+  size : 32,                     // two floats
+  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+});
 
 /* ---------- BIND GROUP HELPERS ---------- */
 function upscaleBG(src:GPUTexture,dst:GPUTexture){
@@ -233,7 +257,14 @@ const cnnBG_full = device.createBindGroup({layout:cnnPipe.getBindGroupLayout(0),
     {binding:2,resource:weightsTex.createView()},
     {binding:3,resource:fullMaskTex.createView()}
 ]});
-
+const normBG = device.createBindGroup({
+  layout : normPipe.getBindGroupLayout(0),
+  entries: [
+    { binding: 0, resource: { buffer: normStatsBuf } },      // Stats
+    { binding: 1, resource: sampler },                   // samp
+    { binding: 2, resource: webcamTex.createView() },    // src  ← unchanged
+    { binding: 3, resource: currPyr[0].createView() }    // dst  ← new
+]});
 /* ---------- UTILS ---------- */
 function randAug(){
   const scale = 0.6 + Math.random()*0.3;
@@ -274,7 +305,41 @@ function downscale(src:GPUTexture,dst:GPUTexture){
   rp.end();
   device.queue.submit([enc.finish()]);
 }
+const sampleW = 32, sampleH = 24;
+const offCanvas = new OffscreenCanvas(sampleW, sampleH);
+const offCtx    = offCanvas.getContext('2d')!;
 
+const tmp = new Float32Array(8);                // = 32 bytes
+function updateNormStats() {
+  /* sample a smaller frame to keep CPU work reasonable */
+  offCtx.drawImage(video, 0, 0, sampleW, sampleH);
+  const px = offCtx.getImageData(0, 0, sampleW, sampleH).data;
+
+  /* running sums per channel */
+  const sum   = [0, 0, 0];
+  const sumSq = [0, 0, 0];
+  const N     = sampleW * sampleH;
+
+  for (let i = 0; i < px.length; i += 4) {
+    for (let c = 0; c < 3; c++) {              // R-G-B
+      const v = px[i + c] / 255;               // → 0‒1
+      sum  [c] += v;
+      sumSq[c] += v * v;
+    }
+  }
+
+  for (let c = 0; c < 3; c++) {
+    const mean   = sum[c]   / N;
+    const var_   = sumSq[c] / N - mean * mean;
+    const invStd = 1 / Math.sqrt(var_ + 1e-6);
+
+    tmp[c]     = mean;       // mean.xyz   → indices 0-2
+    tmp[4 + c] = invStd;     // invStd.xyz → indices 4-6
+  }
+  /* tmp[3] and tmp[7] stay 0.0 (padding) */
+
+  device.queue.writeBuffer(normStatsBuf, 0, tmp);
+}
 /* ---------- SGD APPLY ---------- */
 const TRAIN_INTERVAL = 10;
 const LR = 0.01;
@@ -320,9 +385,36 @@ function tick(){
   /* copy camera frame */
   device.queue.copyExternalImageToTexture({source:video},
                                           {texture:webcamTex},wh);
+
   bumpVideoFPS();
-  device.queue.copyExternalImageToTexture({source:video},
-                                          {texture:currPyr[0]},wh);
+  updateNormStats();
+  {
+    const enc = device.createCommandEncoder();
+    const cp  = enc.beginComputePass();
+    cp.setPipeline(normPipe);
+    cp.setBindGroup(0, normBG);
+    cp.dispatchWorkgroups(Math.ceil(wh[0] / 8), Math.ceil(wh[1] / 8));
+    cp.end();
+    device.queue.submit([enc.finish()]);
+  }
+
+  /* ── 2. copy the normalised texture into the current pyramid ─ */
+  // {
+  //   const enc = device.createCommandEncoder();          // NEW
+  //   enc.copyTextureToTexture(                           // encoder-level API
+  //     { texture: normTex },                             //   src
+  //     { texture: currPyr[0] },                          //   dst
+  //     wh                                                //   copy size
+  //   );
+  //   device.queue.submit([enc.finish()]);                // submit the copy
+  // }
+
+  /* ── 3. update webcam frame for the next iteration (unchanged) ─ */
+  device.queue.copyExternalImageToTexture(
+    { source: video },
+    { texture: currPyr[0] },
+    wh
+  );
 
   /* build Gaussian pyramids */
   for(let i=1;i<levels;i++){
